@@ -5,6 +5,8 @@
 |:---:|:---:|:---|
 | 15.12.2025 | 346 | Abgabe durch Projekt* |
 | 26.01.2026 | 347 | Handlungsorientierte Prüfung |
+| -- | 114 | Gemäss Masterplan |
+| -- | 254 | Gemäss Masterplan |
 | 27.04.2026 | 450 | Abgabe durch Projekt* |
 | 18.05.2026 | 320 | Handlungsorientierte Prüfung |
 | 08.06.2026 | 165 | Abgabe durch Projekt* |
