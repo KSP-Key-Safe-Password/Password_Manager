@@ -1,32 +1,46 @@
+use crate::client::pages::generator::{
+    GeneratorPage,
+    Message as GeneratorMessage,
+};
 use iced::{Element, Task};
 
-pub struct PasswordManager {
-
+pub struct PasswordManagerApp {
+    generator: GeneratorPage,
 }
 
 #[derive(Debug, Clone)]
 pub enum Message {
-
+    Generator(GeneratorMessage),
 }
 
-impl PasswordManager {
+impl PasswordManagerApp {
     fn new() -> (Self, Task<Message>) {
+        let (generator, task) = GeneratorPage::new();
         (
-            Self {},
-            Task::none(),
+            Self { generator },
+            task.map(Message::Generator),
         )
     }
 
-    fn update(&mut self, _message: Message) -> Task<Message> {
-        Task::none()
+    fn update(&mut self, message: Message) -> Task<Message> {
+        match message {
+            Message::Generator(msg) => self
+                .generator
+                .update(msg)
+                .map(Message::Generator),
+        }
     }
 
     fn view(&self) -> Element<'_, Message> {
-        iced::widget::text("Password Manager - GUI Coming Soon").into()
+        self.generator.view().map(Message::Generator)
     }
 }
 
 pub fn run() -> iced::Result {
-    iced::application("Password Manager", PasswordManager::update, PasswordManager::view)
-        .run_with(PasswordManager::new)
+    iced::application(
+        "Password Manager",
+        PasswordManagerApp::update,
+        PasswordManagerApp::view,
+    )
+    .run_with(PasswordManagerApp::new)
 }
