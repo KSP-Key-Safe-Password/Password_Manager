@@ -48,43 +48,57 @@ impl GeneratorPage {
             Message::LengthInputChanged(value) => {
                 let filtered: String =
                     value.chars().filter(|ch| ch.is_ascii_digit()).collect();
-                let mut status: Option<String> = None;
-
-                if filtered != value {
-                    status =
-                        Some("Only digits are allowed for the password length.".into());
-                }
+                let mut status_message: Option<String> = None;
 
                 if filtered.is_empty() {
                     self.length_input.clear();
-                    self.status_message = Some("Please enter a password length.".into());
+                    self.status_message = if value.is_empty() {
+                        Some("Please enter a password length.".into())
+                    } else {
+                        Some("Only digits are allowed for the password length.".into())
+                    };
                     return Task::none();
+                }
+
+                if filtered != value {
+                    status_message =
+                        Some("Only digits are allowed for the password length.".into());
                 }
 
                 match filtered.parse::<u32>() {
                     Ok(parsed) => {
                         let min = MIN_PASSWORD_LENGTH as u32;
                         let max = MAX_PASSWORD_LENGTH as u32;
-                        let clamped = parsed.clamp(min, max);
 
-                        if parsed != clamped {
-                            status = Some(format!(
+                        if parsed > max {
+                            self.length_value = max as u16;
+                            self.settings.length = max as usize;
+                            self.length_input = max.to_string();
+                            status_message = Some(format!(
                                 "Please enter a number between {MIN_PASSWORD_LENGTH} and {}.",
                                 MAX_PASSWORD_LENGTH
                             ));
-                        }
+                        } else {
+                            self.length_input = filtered;
 
-                        self.length_value = clamped as u16;
-                        self.settings.length = clamped as usize;
-                        self.length_input = clamped.to_string();
+                            if parsed < min {
+                                status_message = Some(format!(
+                                    "Please enter a number between {MIN_PASSWORD_LENGTH} and {}.",
+                                    MAX_PASSWORD_LENGTH
+                                ));
+                            } else {
+                                self.length_value = parsed as u16;
+                                self.settings.length = parsed as usize;
+                            }
+                        }
                     }
                     Err(_) => {
                         self.length_input = filtered;
-                        status = Some("Please enter a valid number.".into());
+                        status_message = Some("Please enter a valid number.".into());
                     }
                 }
 
-                self.status_message = status;
+                self.status_message = status_message;
             }
             Message::ToggleUppercase(value) => {
                 self.settings.include_uppercase = value;
@@ -171,9 +185,22 @@ impl GeneratorPage {
             copy_button = copy_button.on_press(Message::CopyPressed);
         }
 
+        let can_generate = self
+            .length_input
+            .parse::<u32>()
+            .map(|value| {
+                value >= MIN_PASSWORD_LENGTH as u32 && value <= MAX_PASSWORD_LENGTH as u32
+            })
+            .unwrap_or(false);
+
+        let mut generate_button = button("Generate password");
+        if can_generate {
+            generate_button = generate_button.on_press(Message::GeneratePressed);
+        }
+
         let controls = Row::new()
             .spacing(12)
-            .push(button("Generate password").on_press(Message::GeneratePressed))
+            .push(generate_button)
             .push(copy_button);
 
         let password_display = if let Some(password) = &self.generated_password {
