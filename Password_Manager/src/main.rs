@@ -1,10 +1,12 @@
 mod password_generator;
+mod client;
 
 use arboard::Clipboard;
 use password_generator::{ask_user_for_password_settings, generate_password};
 use std::io::{self, Write};
 
-fn main() {
+fn main() -> iced::Result {
+    client::app::run()?;
     let settings = ask_user_for_password_settings();
     match generate_password(&settings) {
         Ok(password) => {
@@ -18,6 +20,7 @@ fn main() {
         }
         Err(err) => eprintln!("Could not create password: {err}"),
     }
+    Ok(())
 }
 
 fn prompt_save_to_clipboard() -> bool {
