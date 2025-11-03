@@ -5,6 +5,7 @@ const LOWERCASE: &[u8] = b"abcdefghijklmnopqrstuvwxyz";
 const UPPERCASE: &[u8] = b"ABCDEFGHIJKLMNOPQRSTUVWXYZ";
 const NUMBERS: &[u8] = b"0123456789";
 const SPECIAL: &[u8] = b"!@#$%^&*()-_=+[]{};:,.<>/?";
+const MAX_PASSWORD_LENGTH: usize = 128;
 
 pub struct PasswordSettings {
     pub length: usize,
@@ -26,6 +27,9 @@ impl Default for PasswordSettings {
 pub fn generate_password(settings: &PasswordSettings) -> Result<String, &'static str> {
     if settings.length == 0 {
         return Err("Password length must be greater than zero");
+    }
+    if settings.length > MAX_PASSWORD_LENGTH {
+        return Err("Password length exceeds supported maximum");
     }
 
     let mut pools: Vec<&[u8]> = vec![LOWERCASE];
@@ -112,10 +116,16 @@ fn prompt_input(prompt: &str) -> Option<String> {
 
 fn prompt_usize(prompt: &str, default: usize) -> usize {
     loop {
-        let full_prompt = format!("{prompt} (default {default})");
+        let full_prompt = format!(
+            "{prompt} (default {default}, max {MAX_PASSWORD_LENGTH})"
+        );
         match prompt_input(&full_prompt) {
             Some(value) => match value.parse() {
-                Ok(parsed) => return parsed,
+                Ok(parsed) if parsed <= MAX_PASSWORD_LENGTH => return parsed,
+                Ok(_) => {
+                    println!("Please enter a number up to {MAX_PASSWORD_LENGTH}.");
+                    continue;
+                }
                 Err(_) => {
                     println!("Please enter a valid number.");
                     continue;
