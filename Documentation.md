@@ -22,7 +22,16 @@
 
 ## Password Manager in AWS
 
+Die Dokumentation für das Setup von AWS findet man alles in einem separaten File.
+
+Link zur Dokumentation: [Documentation AWS](/home/noe/RustroverProjects/Password_Manager/AWS_Documentation.md)
+
 ## Password Manager in Docker
+
+Die Dokumentation für das Setup von Docker findet man alles in einem separaten File.
+
+Link zur Dokumentation: [Documentation DOCKER](/home/noe/RustroverProjects/Password_Manager/DOCKER_Documentation.md)
+
 
 ## Password Manager Sicherheit
 
