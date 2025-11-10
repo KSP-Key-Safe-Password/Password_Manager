@@ -1,11 +1,9 @@
-use crate::client::pages::generator::{
-    GeneratorPage,
-    Message as GeneratorMessage,
-};
+use crate::client::framework::Controller;
+use crate::client::pages::generator::{GeneratorController, Message as GeneratorMessage};
 use iced::{Element, Task};
 
 pub struct PasswordManagerApp {
-    generator: GeneratorPage,
+    primary_controller: Box<dyn Controller>,
 }
 
 #[derive(Debug, Clone)]
@@ -15,24 +13,33 @@ pub enum Message {
 
 impl PasswordManagerApp {
     fn new() -> (Self, Task<Message>) {
-        let (generator, task) = GeneratorPage::new();
+        let (controller, task) = GeneratorController::bootstrap();
         (
-            Self { generator },
-            task.map(Message::Generator),
+            Self {
+                primary_controller: controller,
+            },
+            task,
         )
     }
 
     fn update(&mut self, message: Message) -> Task<Message> {
-        match message {
-            Message::Generator(msg) => self
-                .generator
-                .update(msg)
-                .map(Message::Generator),
+        if self.primary_controller.accepts(&message) {
+            self.primary_controller.update(message)
+        } else {
+            #[cfg(debug_assertions)]
+            {
+                eprintln!(
+                    "Controller '{}' ignored message: {:?}",
+                    self.primary_controller.name(),
+                    message
+                );
+            }
+            Task::none()
         }
     }
 
     fn view(&self) -> Element<'_, Message> {
-        self.generator.view().map(Message::Generator)
+        self.primary_controller.view()
     }
 }
 

@@ -7,3 +7,4 @@ edition = "2024"
 iced = "0.13.1"
 rand = { version = "0.8", features = ["std"] }
 arboard = "3.3"
+inherit = "0.0.3"
