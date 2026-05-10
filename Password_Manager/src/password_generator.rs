@@ -4,6 +4,8 @@ const LOWERCASE: &[u8] = b"abcdefghijklmnopqrstuvwxyz";
 const UPPERCASE: &[u8] = b"ABCDEFGHIJKLMNOPQRSTUVWXYZ";
 const NUMBERS: &[u8] = b"0123456789";
 const SPECIAL: &[u8] = b"!@#$%^&*()-_=+[]{};:,.<>/?";
+
+pub const MIN_PASSWORD_LENGTH: usize = 4;
 pub const MAX_PASSWORD_LENGTH: usize = 128;
 
 pub struct PasswordSettings {
@@ -24,15 +26,8 @@ impl Default for PasswordSettings {
     }
 }
 
-pub fn generate_password(settings: &PasswordSettings) -> Result<String, &'static str> {
-    if settings.length == 0 {
-        return Err("Password length must be greater than zero");
-    }
-    if settings.length > MAX_PASSWORD_LENGTH {
-        return Err("Password length exceeds supported maximum");
-    }
-
-    let mut pools: Vec<&[u8]> = vec![LOWERCASE];
+fn collect_pools(settings: &PasswordSettings) -> Vec<&'static [u8]> {
+    let mut pools: Vec<&'static [u8]> = vec![LOWERCASE];
     if settings.include_uppercase {
         pools.push(UPPERCASE);
     }
@@ -42,12 +37,34 @@ pub fn generate_password(settings: &PasswordSettings) -> Result<String, &'static
     if settings.include_special_chars {
         pools.push(SPECIAL);
     }
+    pools
+}
 
+pub fn validate_password_settings(
+    settings: &PasswordSettings,
+) -> Result<(), &'static str> {
+    if settings.length < MIN_PASSWORD_LENGTH {
+        return Err("Password length is below the supported minimum");
+    }
+    if settings.length > MAX_PASSWORD_LENGTH {
+        return Err("Password length exceeds supported maximum");
+    }
+
+    let pools = collect_pools(settings);
     if settings.length < pools.len() {
         return Err("Password length too short for the selected character groups");
     }
 
-    let mut rng = thread_rng();
+    Ok(())
+}
+
+pub fn generate_password_with_rng<R: Rng>(
+    settings: &PasswordSettings,
+    rng: &mut R,
+) -> Result<String, &'static str> {
+    validate_password_settings(settings)?;
+
+    let pools = collect_pools(settings);
     let mut password = Vec::with_capacity(settings.length);
 
     for pool in &pools {
@@ -59,9 +76,14 @@ pub fn generate_password(settings: &PasswordSettings) -> Result<String, &'static
         password.push(pool[rng.gen_range(0..pool.len())]);
     }
 
-    password.shuffle(&mut rng);
+    password.shuffle(rng);
 
     String::from_utf8(password).map_err(|_| "Generated password contains invalid UTF-8")
+}
+
+pub fn generate_password(settings: &PasswordSettings) -> Result<String, &'static str> {
+    let mut rng = thread_rng();
+    generate_password_with_rng(settings, &mut rng)
 }
 
 #[cfg(test)]
