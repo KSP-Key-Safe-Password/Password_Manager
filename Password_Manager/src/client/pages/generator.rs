@@ -1,12 +1,10 @@
+use crate::clipboard::{RealClipboard, copy_password_to_clipboard};
 use crate::password_generator::{
-    generate_password, validate_password_settings, PasswordSettings,
-    MAX_PASSWORD_LENGTH, MIN_PASSWORD_LENGTH,
+    MAX_PASSWORD_LENGTH, MIN_PASSWORD_LENGTH, PasswordSettings, generate_password,
+    validate_password_settings,
 };
-use arboard::Clipboard;
 use iced::alignment;
-use iced::widget::{
-    button, checkbox, container, text, text_input, Column, Row,
-};
+use iced::widget::{Column, Row, button, checkbox, container, text, text_input};
 use iced::{Element, Length, Task};
 
 pub struct GeneratorPage {
@@ -45,8 +43,7 @@ impl GeneratorPage {
     pub fn update(&mut self, message: Message) -> Task<Message> {
         match message {
             Message::LengthInputChanged(value) => {
-                let filtered: String =
-                    value.chars().filter(|ch| ch.is_ascii_digit()).collect();
+                let filtered: String = value.chars().filter(|ch| ch.is_ascii_digit()).collect();
                 let mut status_message: Option<String> = None;
 
                 if filtered.is_empty() {
@@ -121,24 +118,17 @@ impl GeneratorPage {
                     self.status_message = Some(err.to_string());
                 }
             },
-            Message::CopyPressed => {
-                if let Some(password) = &self.generated_password {
-                    match Clipboard::new()
-                        .and_then(|mut clipboard| clipboard.set_text(password.clone()))
-                    {
-                        Ok(()) => {
-                            self.status_message =
-                                Some("Password copied to clipboard.".into());
-                        }
-                        Err(err) => {
-                            self.status_message =
-                                Some(format!("Failed to copy password: {err}"));
-                        }
-                    }
-                } else {
-                    self.status_message = Some("No password to copy yet.".into());
+            Message::CopyPressed => match RealClipboard::new() {
+                Ok(mut clipboard) => {
+                    self.status_message = Some(copy_password_to_clipboard(
+                        &mut clipboard,
+                        self.generated_password.as_deref(),
+                    ));
                 }
-            }
+                Err(e) => {
+                    self.status_message = Some(format!("Could not open clipboard: {e}"));
+                }
+            },
         }
 
         Task::none()
@@ -162,10 +152,7 @@ impl GeneratorPage {
             .push(text(format!(
                 "Password length ({MIN_PASSWORD_LENGTH}-{MAX_PASSWORD_LENGTH})"
             )))
-            .push(
-                text_input("Length", &self.length_input)
-                    .on_input(Message::LengthInputChanged),
-            );
+            .push(text_input("Length", &self.length_input).on_input(Message::LengthInputChanged));
 
         let toggles = Column::new()
             .spacing(8)
@@ -194,9 +181,7 @@ impl GeneratorPage {
         let can_generate = self
             .length_input
             .parse::<u32>()
-            .map(|value| {
-                value >= MIN_PASSWORD_LENGTH as u32 && value <= MAX_PASSWORD_LENGTH as u32
-            })
+            .map(|value| value >= MIN_PASSWORD_LENGTH as u32 && value <= MAX_PASSWORD_LENGTH as u32)
             .unwrap_or(false);
 
         let mut generate_button = button("Generate password");
