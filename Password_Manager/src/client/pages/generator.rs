@@ -1,5 +1,6 @@
 use crate::password_generator::{
-    generate_password, PasswordSettings, MAX_PASSWORD_LENGTH,
+    generate_password, validate_password_settings, PasswordSettings,
+    MAX_PASSWORD_LENGTH, MIN_PASSWORD_LENGTH,
 };
 use arboard::Clipboard;
 use iced::alignment;
@@ -7,8 +8,6 @@ use iced::widget::{
     button, checkbox, container, text, text_input, Column, Row,
 };
 use iced::{Element, Length, Task};
-
-const MIN_PASSWORD_LENGTH: u16 = 4;
 
 pub struct GeneratorPage {
     settings: PasswordSettings,
@@ -102,15 +101,15 @@ impl GeneratorPage {
             }
             Message::ToggleUppercase(value) => {
                 self.settings.include_uppercase = value;
-                self.status_message = None;
+                self.refresh_validation_status();
             }
             Message::ToggleNumbers(value) => {
                 self.settings.include_numbers = value;
-                self.status_message = None;
+                self.refresh_validation_status();
             }
             Message::ToggleSpecial(value) => {
                 self.settings.include_special_chars = value;
-                self.status_message = None;
+                self.refresh_validation_status();
             }
             Message::GeneratePressed => match generate_password(&self.settings) {
                 Ok(password) => {
@@ -143,6 +142,13 @@ impl GeneratorPage {
         }
 
         Task::none()
+    }
+
+    fn refresh_validation_status(&mut self) {
+        match validate_password_settings(&self.settings) {
+            Ok(()) => self.status_message = None,
+            Err(err) => self.status_message = Some(err.to_string()),
+        }
     }
 
     pub fn view(&self) -> Element<'_, Message> {
