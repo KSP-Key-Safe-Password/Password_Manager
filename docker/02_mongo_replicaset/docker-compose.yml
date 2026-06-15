@@ -1,0 +1,52 @@
+# M165 — HZ5: MongoDB Replica Set (1 Primary + 2 Secondaries)
+#
+# Bewusst OHNE Authentifizierung: Replica Sets mit Auth brauchen ein
+# gemeinsames Keyfile fuer die interne Node-Kommunikation — das ist
+# Produktions-Setup und fuer den Skalierungs-Nachweis nicht noetig.
+# (Guter Punkt fuer die kritische Beurteilung im Portfolio!)
+#
+# Start:
+#   docker compose up -d
+#   docker exec -it m165-mongo1 mongosh --eval 'rs.initiate({
+#     _id: "rs0",
+#     members: [
+#       { _id: 0, host: "mongo1:27017" },
+#       { _id: 1, host: "mongo2:27017" },
+#       { _id: 2, host: "mongo3:27017" }
+#     ]
+#   })'
+#
+# Status pruefen (Screenshot!):  docker exec -it m165-mongo1 mongosh --eval 'rs.status()'
+
+services:
+  mongo1:
+    image: mongo:7
+    container_name: m165-mongo1
+    command: ["mongod", "--replSet", "rs0", "--bind_ip_all"]
+    ports:
+      - "27018:27017"
+    volumes:
+      - mongo1_data:/data/db
+
+  mongo2:
+    image: mongo:7
+    container_name: m165-mongo2
+    command: ["mongod", "--replSet", "rs0", "--bind_ip_all"]
+    ports:
+      - "27019:27017"
+    volumes:
+      - mongo2_data:/data/db
+
+  mongo3:
+    image: mongo:7
+    container_name: m165-mongo3
+    command: ["mongod", "--replSet", "rs0", "--bind_ip_all"]
+    ports:
+      - "27020:27017"
+    volumes:
+      - mongo3_data:/data/db
+
+volumes:
+  mongo1_data:
+  mongo2_data:
+  mongo3_data:
