@@ -1,4 +1,5 @@
 use crate::clipboard::{RealClipboard, copy_password_to_clipboard};
+use crate::client::vault_db::{save_vault_entry_for_ui, vault_entry_from_password};
 use crate::password_generator::{
     MAX_PASSWORD_LENGTH, MIN_PASSWORD_LENGTH, PasswordSettings, generate_password,
     validate_password_settings,
@@ -23,6 +24,8 @@ pub enum Message {
     ToggleSpecial(bool),
     GeneratePressed,
     CopyPressed,
+    SaveToVaultPressed,
+    SavedToVault(Result<(), String>),
 }
 
 impl GeneratorPage {
@@ -129,6 +132,33 @@ impl GeneratorPage {
                     self.status_message = Some(format!("Could not open clipboard: {e}"));
                 }
             },
+            Message::SaveToVaultPressed => {
+                let password = match self.generated_password.as_deref() {
+                    Some(password) => password,
+                    None => {
+                        self.status_message = Some("No password has been generated yet.".into());
+                        return Task::none();
+                    }
+                };
+
+                match vault_entry_from_password(password) {
+                    Ok(entry) => {
+                        self.status_message = Some("Saving password to vault...".into());
+                        return Task::perform(save_vault_entry_for_ui(entry), Message::SavedToVault);
+                    }
+                    Err(err) => {
+                        self.status_message = Some(err);
+                    }
+                }
+            }
+            Message::SavedToVault(result) => match result {
+                Ok(()) => {
+                    self.status_message = Some("Saved to vault.".into());
+                }
+                Err(err) => {
+                    self.status_message = Some(err);
+                }
+            },
         }
 
         Task::none()
@@ -189,10 +219,16 @@ impl GeneratorPage {
             generate_button = generate_button.on_press(Message::GeneratePressed);
         }
 
+        let mut save_button = button("Save to vault");
+        if self.generated_password.is_some() {
+            save_button = save_button.on_press(Message::SaveToVaultPressed);
+        }
+
         let controls = Row::new()
             .spacing(12)
             .push(generate_button)
-            .push(copy_button);
+            .push(copy_button)
+            .push(save_button);
 
         let password_display = if let Some(password) = &self.generated_password {
             text(password).size(24)
