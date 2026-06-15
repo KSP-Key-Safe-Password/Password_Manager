@@ -1,0 +1,57 @@
+# M165 — HZ5: Cassandra 3-Node Cluster
+#
+# WICHTIG: Nodes NACHEINANDER starten (Cassandra mag keine gleichzeitigen Joins):
+#   docker compose up -d cassandra1
+#   # warten bis "Startup complete" im Log: docker logs -f m165-cass1
+#   docker compose up -d cassandra2
+#   # wieder warten...
+#   docker compose up -d cassandra3
+#
+# Cluster-Status (Screenshot!):  docker exec m165-cass1 nodetool status
+#   -> alle 3 Nodes sollten "UN" (Up/Normal) zeigen
+#
+# Hinweis Ressourcen: 3 Cassandra-Nodes brauchen einiges an RAM.
+# Heap ist hier auf 512M/Node begrenzt — reicht fuer die Demo.
+
+services:
+  cassandra1:
+    image: cassandra:4.1
+    container_name: m165-cass1
+    ports:
+      - "9042:9042"
+    environment: &cass_env
+      CASSANDRA_CLUSTER_NAME: m165-cluster
+      CASSANDRA_SEEDS: cassandra1
+      MAX_HEAP_SIZE: 512M
+      HEAP_NEWSIZE: 100M
+    volumes:
+      - cass1_data:/var/lib/cassandra
+    networks: [cassnet]
+
+  cassandra2:
+    image: cassandra:4.1
+    container_name: m165-cass2
+    ports:
+      - "9043:9042"
+    environment: *cass_env
+    volumes:
+      - cass2_data:/var/lib/cassandra
+    networks: [cassnet]
+
+  cassandra3:
+    image: cassandra:4.1
+    container_name: m165-cass3
+    ports:
+      - "9044:9042"
+    environment: *cass_env
+    volumes:
+      - cass3_data:/var/lib/cassandra
+    networks: [cassnet]
+
+networks:
+  cassnet:
+
+volumes:
+  cass1_data:
+  cass2_data:
+  cass3_data:

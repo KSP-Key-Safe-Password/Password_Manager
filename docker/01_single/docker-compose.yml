@@ -1,0 +1,45 @@
+# M165 — Einzelinstanzen fuer HZ2, HZ3, HZ4
+#
+# Start:            docker compose up -d
+# MongoDB-Shell:    docker exec -it m165-mongodb mongosh -u pm_admin -p admin123
+# Cassandra-Shell:  docker exec -it m165-cassandra cqlsh -u cassandra -p cassandra
+#
+# WICHTIG fuer Cassandra-Auth (HZ3): nach dem ersten Start einmalig ausfuehren:
+#   docker exec m165-cassandra sed -i \
+#     -e 's/authenticator: AllowAllAuthenticator/authenticator: PasswordAuthenticator/' \
+#     -e 's/authorizer: AllowAllAuthorizer/authorizer: CassandraAuthorizer/' \
+#     /etc/cassandra/cassandra.yaml
+#   docker restart m165-cassandra
+# Danach Login mit Default-Superuser cassandra/cassandra.
+
+services:
+  mongodb:
+    image: mongo:7
+    container_name: m165-mongodb
+    restart: unless-stopped
+    ports:
+      - "27017:27017"
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: pm_admin
+      MONGO_INITDB_ROOT_PASSWORD: admin123
+    volumes:
+      - mongo_data:/data/db
+      - ./backups:/backups
+
+  cassandra:
+    image: cassandra:4.1
+    container_name: m165-cassandra
+    restart: unless-stopped
+    ports:
+      - "9042:9042"
+    environment:
+      CASSANDRA_CLUSTER_NAME: m165-single
+      MAX_HEAP_SIZE: 1G
+      HEAP_NEWSIZE: 200M
+    volumes:
+      - cassandra_data:/var/lib/cassandra
+      - ./backups:/backups
+
+volumes:
+  mongo_data:
+  cassandra_data:
